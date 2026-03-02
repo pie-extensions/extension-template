@@ -6,11 +6,9 @@
     "require": {
         "php": ">=8.1"
     },
-    "extra": {
-        "php-ext": {
-            "extension-name": "EXTENSION_NAME",
-            "configure-options": []
-        }
+    "php-ext": {
+        "extension-name": "EXTENSION_NAME",
+        "configure-options": []
     },
     "support": {
         "source": "https://github.com/pie-extensions/EXTENSION_NAME"
