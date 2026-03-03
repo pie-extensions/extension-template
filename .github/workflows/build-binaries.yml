@@ -21,6 +21,7 @@ jobs:
       enabled: ${{ steps.check.outputs.enabled }}
       matrix: ${{ steps.check.outputs.matrix }}
       release-tag: ${{ steps.tag.outputs.tag }}
+      build-path: ${{ steps.check.outputs.build-path }}
     steps:
       - uses: actions/checkout@v4
       - name: Determine release tag
@@ -41,6 +42,8 @@ jobs:
             ARCHES=$(yq -o=json -I=0 '.build.arches // ["x86_64","arm64"]' .pie-mirror.yml)
             PHP=$(yq -o=json -I=0 '.build."php-versions" // ["8.1","8.2","8.3","8.4"]' .pie-mirror.yml)
             ZTS=$(yq -o=json -I=0 '.build.zts // ["nts","ts"]' .pie-mirror.yml)
+            BUILD_PATH=$(yq '.build."build-path" // "."' .pie-mirror.yml)
+            echo "build-path=${BUILD_PATH}" >> "$GITHUB_OUTPUT"
             MATRIX="{\"os\":${OS},\"arch\":${ARCHES},\"php\":${PHP},\"zts\":${ZTS}}"
             echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
           fi
@@ -72,6 +75,7 @@ jobs:
           mode: build
           release-tag: ${{ needs.check.outputs.release-tag }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          build-path: ${{ needs.check.outputs.build-path }}
 
   publish:
     name: Publish release
