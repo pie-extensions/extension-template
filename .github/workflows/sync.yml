@@ -5,11 +5,14 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   sync:
     name: Sync upstream releases
     runs-on: ubuntu-latest
+    outputs:
+      synced-versions: ${{ steps.sync.outputs.synced-versions }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,3 +43,26 @@ jobs:
         with:
           mode: validate
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  dispatch-builds:
+    name: Dispatch binary builds
+    needs: sync
+    if: needs.sync.outputs.synced-versions != '[]' && needs.sync.outputs.synced-versions != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if build is enabled
+        id: check
+        run: |
+          ENABLED=$(yq '.build.enabled // false' .pie-mirror.yml)
+          echo "enabled=${ENABLED}" >> "$GITHUB_OUTPUT"
+      - name: Dispatch build-binaries workflow
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSIONS='${{ needs.sync.outputs.synced-versions }}'
+          echo "$VERSIONS" | jq -r '.[]' | while read -r VERSION; do
+            echo "Dispatching build-binaries for ${VERSION}"
+            gh workflow run build-binaries.yml -f release-tag="${VERSION}"
+          done
