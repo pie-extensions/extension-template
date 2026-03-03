@@ -1,0 +1,85 @@
+name: Build pre-packaged binaries
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: 'Release tag to build binaries for'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Check if build is enabled
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+      matrix: ${{ steps.check.outputs.matrix }}
+      release-tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ inputs.release-tag }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Read build config
+        id: check
+        run: |
+          ENABLED=$(yq '.build.enabled // false' .pie-mirror.yml)
+          echo "enabled=${ENABLED}" >> "$GITHUB_OUTPUT"
+          if [ "$ENABLED" = "true" ]; then
+            OS=$(yq -o=json '.build.os // ["linux","darwin"]' .pie-mirror.yml)
+            ARCHES=$(yq -o=json '.build.arches // ["x86_64","arm64"]' .pie-mirror.yml)
+            PHP=$(yq -o=json '.build."php-versions" // ["8.1","8.2","8.3","8.4"]' .pie-mirror.yml)
+            ZTS=$(yq -o=json '.build.zts // ["nts","ts"]' .pie-mirror.yml)
+            MATRIX="{\"os\":${OS},\"arch\":${ARCHES},\"php\":${PHP},\"zts\":${ZTS}}"
+            echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build (${{ matrix.os }}-${{ matrix.arch }}-php${{ matrix.php }}-${{ matrix.zts }})
+    needs: check
+    if: needs.check.outputs.enabled == 'true'
+    runs-on: >-
+      ${{ matrix.os == 'linux' && matrix.arch == 'x86_64' && 'ubuntu-latest'
+       || matrix.os == 'linux' && matrix.arch == 'arm64' && 'ubuntu-24.04-arm'
+       || matrix.os == 'darwin' && matrix.arch == 'x86_64' && 'macos-13'
+       || matrix.os == 'darwin' && matrix.arch == 'arm64' && 'macos-14' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.check.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.release-tag }}
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          phpts: ${{ matrix.zts }}
+      - name: Build and upload binary
+        uses: pie-extensions/mirror-action@v1
+        with:
+          mode: build
+          release-tag: ${{ needs.check.outputs.release-tag }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish release
+    needs: [check, build]
+    if: needs.check.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ needs.check.outputs.release-tag }}" --draft=false --repo "${{ github.repository }}"
