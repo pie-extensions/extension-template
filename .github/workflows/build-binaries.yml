@@ -37,10 +37,10 @@ jobs:
           ENABLED=$(yq '.build.enabled // false' .pie-mirror.yml)
           echo "enabled=${ENABLED}" >> "$GITHUB_OUTPUT"
           if [ "$ENABLED" = "true" ]; then
-            OS=$(yq -o=json '.build.os // ["linux","darwin"]' .pie-mirror.yml)
-            ARCHES=$(yq -o=json '.build.arches // ["x86_64","arm64"]' .pie-mirror.yml)
-            PHP=$(yq -o=json '.build."php-versions" // ["8.1","8.2","8.3","8.4"]' .pie-mirror.yml)
-            ZTS=$(yq -o=json '.build.zts // ["nts","ts"]' .pie-mirror.yml)
+            OS=$(yq -o=json -I=0 '.build.os // ["linux","darwin"]' .pie-mirror.yml)
+            ARCHES=$(yq -o=json -I=0 '.build.arches // ["x86_64","arm64"]' .pie-mirror.yml)
+            PHP=$(yq -o=json -I=0 '.build."php-versions" // ["8.1","8.2","8.3","8.4"]' .pie-mirror.yml)
+            ZTS=$(yq -o=json -I=0 '.build.zts // ["nts","ts"]' .pie-mirror.yml)
             MATRIX="{\"os\":${OS},\"arch\":${ARCHES},\"php\":${PHP},\"zts\":${ZTS}}"
             echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
           fi
