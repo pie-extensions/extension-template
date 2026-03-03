@@ -53,10 +53,10 @@ jobs:
     needs: check
     if: needs.check.outputs.enabled == 'true'
     runs-on: >-
-      ${{ matrix.os == 'linux' && matrix.arch == 'x86_64' && 'ubuntu-latest'
+      ${{ matrix.os == 'linux' && matrix.arch == 'x86_64' && 'ubuntu-24.04'
        || matrix.os == 'linux' && matrix.arch == 'arm64' && 'ubuntu-24.04-arm'
-       || matrix.os == 'darwin' && matrix.arch == 'x86_64' && 'macos-13'
-       || matrix.os == 'darwin' && matrix.arch == 'arm64' && 'macos-14' }}
+       || matrix.os == 'darwin' && matrix.arch == 'x86_64' && 'macos-15-intel'
+       || matrix.os == 'darwin' && matrix.arch == 'arm64' && 'macos-15' }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.check.outputs.matrix) }}
