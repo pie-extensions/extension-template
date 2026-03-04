@@ -54,7 +54,7 @@ jobs:
       - name: Check if build is enabled
         id: check
         run: |
-          ENABLED=$(yq '.build.enabled // false' .pie-mirror.yml)
+          ENABLED=$(jq -r '.build.enabled // false' .pie-mirror.json)
           echo "enabled=${ENABLED}" >> "$GITHUB_OUTPUT"
       - name: Dispatch build-binaries workflow
         if: steps.check.outputs.enabled == 'true'

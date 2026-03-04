@@ -18,7 +18,7 @@ This is a PIE-compatible mirror of UPSTREAM_OWNER/UPSTREAM_REPO. It does not con
 ## Key files
 
 ```
-.pie-mirror.yml                  # upstream config (repo, ext name, source dir)
+.pie-mirror.json                  # upstream config (repo, ext name, source dir)
 composer.json                    # PIE-compatible package metadata
 src/                             # upstream source code (populated by sync)
 .github/workflows/sync.yml      # sync workflow triggered by core repo
