@@ -42,7 +42,13 @@ jobs:
             ARCHES=$(jq -c '.build.arches // ["x86_64","arm64"]' .pie-mirror.json)
             PHP=$(jq -c '.build."php-versions" // ["8.1","8.2","8.3","8.4"]' .pie-mirror.json)
             ZTS=$(jq -c '.build.zts // ["nts","ts"]' .pie-mirror.json)
-            BUILD_PATH=$(jq -r '.build."build-path" // "."' .pie-mirror.json)
+            SOURCE_DIR=$(jq -r '.source_dir // "src/"' .pie-mirror.json)
+            RAW_BUILD_PATH=$(jq -r '.build."build-path" // "."' .pie-mirror.json)
+            if [ "$RAW_BUILD_PATH" = "." ] || [ -z "$RAW_BUILD_PATH" ]; then
+                BUILD_PATH="${SOURCE_DIR%/}"
+            else
+                BUILD_PATH="${SOURCE_DIR%/}/${RAW_BUILD_PATH}"
+            fi
             echo "build-path=${BUILD_PATH}" >> "$GITHUB_OUTPUT"
             MATRIX="{\"os\":${OS},\"arch\":${ARCHES},\"php\":${PHP},\"zts\":${ZTS}}"
             echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
