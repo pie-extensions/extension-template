@@ -78,4 +78,19 @@ jobs:
       - name: Publish draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ needs.check.outputs.release-tag }}" --draft=false --repo "${{ github.repository }}"
+        run: |
+          TAG="${{ needs.check.outputs.release-tag }}"
+          REPO="${{ github.repository }}"
+
+          HIGHEST=$(gh release list --repo "$REPO" --json tagName --limit 200 \
+            | jq -r '.[].tagName' \
+            | sort -V \
+            | tail -1)
+
+          if [ "$TAG" = "$HIGHEST" ]; then
+            echo "Tag $TAG is the highest version — marking as latest"
+            gh release edit "$TAG" --draft=false --latest --repo "$REPO"
+          else
+            echo "Tag $TAG is NOT the highest ($HIGHEST is) — not marking as latest"
+            gh release edit "$TAG" --draft=false --latest=false --repo "$REPO"
+          fi
