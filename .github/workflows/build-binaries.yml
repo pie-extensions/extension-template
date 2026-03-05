@@ -32,27 +32,13 @@ jobs:
           else
             echo "tag=${{ inputs.release-tag }}" >> "$GITHUB_OUTPUT"
           fi
-      - name: Read build config
+      - name: Resolve build matrix
         id: check
-        run: |
-          ENABLED=$(jq -r '.build.enabled // false' .pie-mirror.json)
-          echo "enabled=${ENABLED}" >> "$GITHUB_OUTPUT"
-          if [ "$ENABLED" = "true" ]; then
-            OS=$(jq -c '.build.os // ["linux","darwin"]' .pie-mirror.json)
-            ARCHES=$(jq -c '.build.arches // ["x86_64","arm64"]' .pie-mirror.json)
-            PHP=$(jq -c '.build."php-versions" // ["8.1","8.2","8.3","8.4"]' .pie-mirror.json)
-            ZTS=$(jq -c '.build.zts // ["nts","ts"]' .pie-mirror.json)
-            SOURCE_DIR=$(jq -r '.source_dir // "src/"' .pie-mirror.json)
-            RAW_BUILD_PATH=$(jq -r '.build."build-path" // "."' .pie-mirror.json)
-            if [ "$RAW_BUILD_PATH" = "." ] || [ -z "$RAW_BUILD_PATH" ]; then
-                BUILD_PATH="${SOURCE_DIR%/}"
-            else
-                BUILD_PATH="${SOURCE_DIR%/}/${RAW_BUILD_PATH}"
-            fi
-            echo "build-path=${BUILD_PATH}" >> "$GITHUB_OUTPUT"
-            MATRIX="{\"os\":${OS},\"arch\":${ARCHES},\"php\":${PHP},\"zts\":${ZTS}}"
-            echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
-          fi
+        uses: pie-extensions/mirror-action@v1
+        with:
+          mode: resolve-matrix
+          release-tag: ${{ steps.tag.outputs.tag }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   build:
     name: Build (${{ matrix.os }}-${{ matrix.arch }}-php${{ matrix.php }}-${{ matrix.zts }})
